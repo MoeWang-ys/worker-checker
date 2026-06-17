@@ -1,146 +1,63 @@
+**English** | [中文](README.md)
+
 # Orchestrator
 
-**AI quality assurance through separation of duties.** Production Agent executes → Check Agent scores blind → Code judges. No AI model gets to be both player and referee.
+A Claude Code skill that makes AI agents deliver high-quality results — by separating production, blind review, and automated judgment into independent workers. No AI model is both player and referee.
 
-[中文](README.md)
+## What You Get
 
----
+Describe what you want. Orchestrator breaks it down, lets a Production Agent build it, has a Check Agent review it blind, and a code judge (`judge.py`) decides pass or fail. If it fails, the feedback goes back to production for another round. You only get involved for final approval.
 
-## Architecture
-
-```
-You (User) ──→ Orch (Claude) ──→ loop.py (background engine)
-                                       │
-                          ┌────────────┼────────────┐
-                          ▼            ▼            ▼
-                   Production Wkr  Check Wkr    judge.py
-                   (claude -p)     (claude -p)   (pure code)
-                          │            │            │
-                     task.json   checklist.json  criteria.json
-                          │            │            │
-                          └──── output ──→ score ──→ PASS/FAIL
-```
-
-| Role | Who | What | Knows |
-|------|-----|------|-------|
-| Orch | Main Claude | Understands, decomposes, schedules, reports | Everything |
-| loop.py | Python script | Starts Workers, runs loop, writes audit trail | All artifacts |
-| Production Worker | `claude -p` subprocess | Executes task, produces output | Only task.json |
-| Check Worker | `claude -p` subprocess | Reviews, scores each item | Only checklist.json + output |
-| judge.py | Python script | Compares criteria vs scores | criteria.json + check result |
-
-## Core Rules
-
-| # | Rule |
-|---|------|
-| 0 | **Only code decides pass/fail** — judge.py is the sole gatekeeper |
-| 1 | **Production & Check Workers fully isolated** — separate `claude -p` processes |
-| 2 | **Production Worker never sees criteria** — only gets task.json |
-| 3 | **Check Worker never sees criteria** — only gets checklist.json |
-| 4 | **Criteria only appear in judge.py input** — never passes through a model |
-| 5 | **Human final approval is mandatory** — judge.py PASS ≠ delivered |
+- **Production Agent** — executes the task, never sees acceptance criteria
+- **Check Agent** — scores the output against a checklist, never knows the passing threshold
+- **Judge (pure Python)** — compares checklist scores against hard criteria, decides pass/fail
+- **Auto-retry loop** — failed rounds feed back to production, up to 3 rounds
+- **Full audit trail** — every round's output, scores, and rulings saved to disk
+- **Agent Monitor** — a subagent watches progress in real-time and reports changes
+- **Multimodal support** — plug in external vision models (MiMo, GPT-4o, etc.) for checking images/UI/screenshots
 
 ## Quick Start
 
-### 1. Decompose the requirement
-
-Create a config.json with three sections:
-
-```json
-{
-  "task": {
-    "description": "What to do. No acceptance criteria here.",
-    "output_format": { "schema": {} }
-  },
-  "checklist": {
-    "items": [
-      { "id": "correctness", "dimension": "Correctness", "check": "Verify logic", "scoring": {"type": "score", "max": 10} }
-    ]
-  },
-  "criteria": {
-    "pass_conditions": [
-      { "id": "min_score", "type": "threshold", "source": "results[0].score", "operator": ">=", "value": 8 }
-    ],
-    "logic": "all",
-    "max_rounds": 3
-  }
-}
-```
-
-### 2. Launch
+1. In Claude Code, type `/orchestrator`
+2. Describe what you want
+3. Orch (your main Claude) decomposes the requirement and launches the loop in the background
+4. Chat freely while it runs — ask about progress anytime
+5. When it finishes, Orch shows you the results. You confirm → delivered.
 
 ```bash
+# Or run directly:
 python3 scripts/loop.py --config examples/sample-config.json
 ```
 
-loop.py runs in background. Orch stays interactive — chat freely, check progress anytime.
+The first time your task needs multimodal checking (images, UI, screenshots) and your current model doesn't support images, Orch will ask for an API endpoint and key. Everything is saved to `~/.orchestrator-config.json` for next time.
 
-### 3. Check progress
+## Changing Settings
 
-```bash
-python3 scripts/status.py                          # Phase snapshot
-tail -f run_output/<ts>/round_1/production_live.log  # Live Worker output
-```
+Settings are configured through conversation with Orch. Just say:
 
-Or launch an Agent Monitor (enabled by default):
+- "Use Haiku for production, Opus for checking"
+- "Switch to 5 retry rounds"
+- "Update the multimodal API key to sk-xxx"
+- "Show my current settings"
 
-```
-Agent: "Check progress.json + *_live.log every 20s. Report any changes."
-```
+For direct config, edit the options in your task's config.json or `~/.orchestrator-config.json`.
 
-### 4. Human final review
+## Checklist Design
 
-When `FINAL_PASS.json` appears, Orch presents results. User confirms → delivered.
+The hardest part of quality assurance is defining what "good" means. The principle:
 
-## Checklist Design Principle
-
-> Minimize subjective judgment. Every scoring dimension should be quantifiable. When subjective judgment is unavoidable, provide clear, specific descriptions.
+**Minimize subjective judgment. Every scoring dimension should be quantifiable.**
 
 | ❌ Bad | ✅ Good |
 |--------|------|
 | "Good code quality" | "Variables use snake_case, functions ≤ 20 lines, no magic numbers" |
 | "Looks nice" | "Card radius 12px, shadow 0 2px 8px rgba(0,0,0,0.08), mobile breakpoint 768px" |
-| "Flows well" | "Average sentence < 30 chars, paragraphs linked with transitions, no 3+ consecutive parallel sentences" |
-
-## File Structure
-
-```
-Orchestrator/
-├── SKILL.md                        # Skill definition & Orch manual
-├── README.md                       # 中文说明
-├── README_EN.md                    # English docs
-├── scripts/
-│   ├── judge.py                    # Code gatekeeper (pure Python)
-│   ├── loop.py                     # Background engine
-│   └── status.py                   # Progress viewer
-├── references/
-│   └── schema.md                   # Artifact JSON schemas
-└── examples/
-    └── sample-config.json          # Demo config
-```
-
-## Configuration Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `production_model` | `haiku` | Model for production Worker |
-| `check_model` | `sonnet` | Model for check Worker |
-| `production_backend` | `claude` | Backend: `claude` or `api` |
-| `check_backend` | `claude` | Backend: `claude` or `api` (use `api` for multimodal) |
-| `api_endpoint` | — | OpenAI-compatible API endpoint |
-| `api_key` | — | API key |
-| `max_rounds` | 3 | Max retry rounds |
-| `bare` | `true` | `true` = isolated (no network), `false` = full (WebSearch ok) |
-| `worker_timeout` | 600 | Worker timeout in seconds |
+| "Flows well" | "Average sentence < 30 chars, paragraphs linked with transitions" |
 
 ## Requirements
 
 - Python 3.12+
 - [Claude Code](https://claude.ai/code) CLI
-
-## Why
-
-When an AI model both produces and judges its own output, it subconsciously lowers the bar. The solution is the oldest trick in software engineering: **separation of duties + automated acceptance testing.** This project applies that pattern to AI agent collaboration.
 
 ## License
 

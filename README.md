@@ -1,60 +1,60 @@
 # Orchestrator
 
-**AI quality assurance through separation of duties.** Production Agent executes → Check Agent scores blind → Code judges. No AI model gets to be both player and referee.
-
 **职责分离式 AI 质量保障系统。** 生产 Agent 执行 → 检查 Agent 盲审打分 → 代码判分。不让任何 AI 模型同时当运动员和裁判。
+
+[English](README_EN.md)
 
 ---
 
-## Architecture / 架构
+## 架构
 
 ```
-You (User) ──→ Orch (Claude) ──→ loop.py (background engine)
-                                       │
-                          ┌────────────┼────────────┐
-                          ▼            ▼            ▼
-                   Production Wkr  Check Wkr    judge.py
-                   (claude -p)     (claude -p)   (pure code)
-                          │            │            │
-                     task.json   checklist.json  criteria.json
-                          │            │            │
-                          └──── output ──→ score ──→ PASS/FAIL
+你（用户）──→ Orch（Claude）──→ loop.py（后台引擎）
+                                      │
+                         ┌────────────┼────────────┐
+                         ▼            ▼            ▼
+                   生产 Worker   检查 Worker    judge.py
+                   (claude -p)   (claude -p)   (纯代码)
+                         │            │            │
+                    task.json  checklist.json criteria.json
+                         │            │            │
+                         └── 产出 ──→ 打分 ──→ PASS/FAIL
 ```
 
-| Role | Who | What | Knows |
-|------|-----|------|-------|
-| Orch | Main Claude | Understands, decomposes, schedules, reports | Everything |
-| loop.py | Python script | Starts Workers, runs loop, writes audit trail | All artifacts |
-| Production Worker | `claude -p` subprocess | Executes task, produces output | Only task.json |
-| Check Worker | `claude -p` subprocess | Reviews, scores each item | Only checklist.json + output |
-| judge.py | Python script | Compares criteria vs scores | criteria.json + check result |
+| 角色 | 是谁 | 做什么 | 知道什么 |
+|------|------|--------|---------|
+| Orch | 主对话 Claude | 理解、拆解、调度、汇报 | 全部 |
+| loop.py | Python 脚本 | 启 Worker、跑循环、写审计 | 全部 artifact |
+| 生产 Worker | `claude -p` 子进程 | 执行任务、产出结果 | 只拿到 task.json |
+| 检查 Worker | `claude -p` 子进程 | 逐条审查、打分 | 只拿到 checklist.json + 产出 |
+| judge.py | Python 脚本 | 比对验收标准 vs 打分结果 | criteria.json + 检查结果 |
 
-## Core Rules / 核心约束
+## 核心约束
 
-| # | Rule / 规则 |
-|---|------------|
-| 0 | **Only code decides pass/fail** — judge.py is the sole gatekeeper |
-| 1 | **Production & Check Workers fully isolated** — separate `claude -p` processes |
-| 2 | **Production Worker never sees criteria** — only gets task.json |
-| 3 | **Check Worker never sees criteria** — only gets checklist.json |
-| 4 | **Criteria only appear in judge.py input** — never passes through a model |
-| 5 | **Human final approval is mandatory** — judge.py PASS ≠ delivered |
+| # | 规则 |
+|---|------|
+| 0 | **放行判定只能由代码做** — judge.py 是唯一的守门人 |
+| 1 | **生产/检查 Worker 上下文完全隔离** — 独立 claude -p 进程 |
+| 2 | **生产 Worker 不拿验收标准** — 只拿到 task.json |
+| 3 | **检查 Worker 不拿验收标准** — 只拿到 checklist.json |
+| 4 | **验收标准只出现在 judge.py 输入** — 不经过任何模型 |
+| 5 | **人工终审是强制闸门** — judge.py PASS ≠ 交付 |
 
-## Quick Start / 快速开始
+## 快速开始
 
-### 1. Orch decomposes the requirement / 拆需求
+### 1. 拆需求
 
-Create a config.json with three sections:
+创建 config.json，包含三段：
 
 ```json
 {
   "task": {
-    "description": "What to do. No acceptance criteria here.",
+    "description": "做什么。不包含任何验收标准。",
     "output_format": { "schema": {} }
   },
   "checklist": {
     "items": [
-      { "id": "correctness", "dimension": "Correctness", "check": "Verify logic", "scoring": {"type": "score", "max": 10} }
+      { "id": "correctness", "dimension": "正确性", "check": "验证逻辑是否正确", "scoring": {"type": "score", "max": 10} }
     ]
   },
   "criteria": {
@@ -67,77 +67,78 @@ Create a config.json with three sections:
 }
 ```
 
-### 2. Launch loop.py / 启动
+### 2. 启动
 
 ```bash
 python3 scripts/loop.py --config examples/sample-config.json
 ```
 
-loop.py runs in background. Orch stays interactive — chat freely, check progress anytime.
+loop.py 后台运行。Orch 保持交互——自由聊天，随时查进度。
 
-### 3. Check progress / 查看进度
+### 3. 查看进度
 
 ```bash
-python3 scripts/status.py                    # Phase snapshot
-tail -f run_output/<ts>/round_1/production_live.log  # Live Worker output
+python3 scripts/status.py                          # 阶段快照
+tail -f run_output/<ts>/round_1/production_live.log  # 实时 Worker 输出
 ```
 
-Or launch an Agent Monitor:
+或者启动 Agent Monitor（默认行为）：
 
 ```
-Agent task: "Check progress.json + *_live.log every 20s, report changes."
+Agent 任务：每 20 秒读 progress.json + *_live.log，有变化就汇报。
 ```
 
-### 4. Human final review / 人工终审
+### 4. 人工终审
 
-When `FINAL_PASS.json` appears, Orch presents results. User confirms → delivered.
+`FINAL_PASS.json` 出现后，Orch 展示结果。用户确认 → 交付。
 
-## Checklist Design Principle / 检查项设计原则
-
-> Minimize subjective judgment. Every scoring dimension should be quantifiable. When subjective judgment is unavoidable, provide clear, specific descriptions.
+## 检查项设计原则
 
 > 尽可能减少主观判断。每个评分维度都应该是可量化的。如果必须有主观判断，也要有清晰明确的描述。
 
-| ❌ Bad / 差 | ✅ Good / 好 |
-|-------------|-------------|
+| ❌ 差 | ✅ 好 |
+|-------|------|
 | "代码质量好" | "变量命名使用 snake_case，函数不超过 20 行，无魔法数字" |
 | "设计好看" | "卡片圆角 12px，阴影 0 2px 8px rgba(0,0,0,0.08)，移动端断点 768px" |
 | "文章读起来流畅" | "平均句长 < 30 字，段落之间有关联词，无连续 3 段以上并列句" |
 
-## File Structure / 文件结构
+## 文件结构
 
 ```
 Orchestrator/
-├── SKILL.md                        # Skill definition & Orch manual
-├── README.md
+├── SKILL.md                        # Skill 定义 & Orch 操作手册
+├── README.md                       # 中文说明
+├── README_EN.md                    # English docs
 ├── scripts/
-│   ├── judge.py                    # Code gatekeeper (pure Python)
-│   ├── loop.py                     # Background engine
-│   └── status.py                   # Progress viewer
+│   ├── judge.py                    # 代码判官（纯 Python）
+│   ├── loop.py                     # 后台引擎
+│   └── status.py                   # 进度查看器
 ├── references/
-│   └── schema.md                   # Artifact JSON schemas
+│   └── schema.md                   # Artifact JSON Schema
 └── examples/
-    └── sample-config.json          # Demo config (math_utils.py)
+    └── sample-config.json          # 示例配置
 ```
 
-## Configuration Options / 配置选项
+## 配置选项
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `production_model` | `haiku` | Model for production Worker |
-| `check_model` | `sonnet` | Model for check Worker |
-| `max_rounds` | 3 | Max retry rounds |
-| `bare` | `true` | `true` = isolated (no network), `false` = full (WebSearch ok) |
-| `worker_timeout` | 600 | Worker timeout in seconds |
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `production_model` | `haiku` | 生产 Worker 模型 |
+| `check_model` | `sonnet` | 检查 Worker 模型 |
+| `production_backend` | `claude` | 生产后端：claude 或 api |
+| `check_backend` | `claude` | 检查后端：claude 或 api（多模态用 api） |
+| `api_endpoint` | — | OpenAI 兼容 API 地址 |
+| `api_key` | — | API 密钥 |
+| `max_rounds` | 3 | 最大重试轮次 |
+| `bare` | `true` | true=隔离模式无网络, false=可搜索 |
+| `worker_timeout` | 600 | Worker 超时秒数 |
 
-## Requirements / 依赖
+## 依赖
 
 - Python 3.12+
-- [Claude Code](https://claude.ai/code) CLI (for Worker subprocesses)
+- [Claude Code](https://claude.ai/code) CLI
 
-## Why / 为什么
-
-When an AI model both produces and judges its own output, it subconsciously lowers the bar. The solution is the oldest trick in software engineering: **separation of duties + automated acceptance testing.** This project applies that pattern to AI agent collaboration.
+## 为什么
 
 当 AI 模型既当运动员又当裁判，它会下意识放水让自己通过。解决方案是软件工程最古老的一招：**职责分离 + 自动化验收测试。** 这个项目把这个模式应用到了 AI Agent 协作中。
 

@@ -46,6 +46,36 @@ Once requirements are confirmed, Orch launches loop.py + Agent Monitor in the ba
 
 Orch presents results when done. Nothing is delivered until you say yes. Change the standards and re-run if you want.
 
+## See an Example
+
+You say: "Build a personal timeline page for Zara Zhang, showing her published opinions and tools from 2023 to now. Reverse chronological, alternating left-right cards."
+
+### Orch decomposes
+
+Orch clarifies with you: data sources (GitHub, Xiaohongshu, X/Twitter), time range (2023-2026), style (vertical timeline, alternating cards, reverse order). Then produces three artifacts:
+
+- **task.json** — what to do, no acceptance criteria inside
+- **checklist.json** — 4 dimensions: HTML structure, timeline ordering, layout, content coverage
+- **criteria.json** — hard thresholds: all structural checks must pass, content coverage ≥ 7/10
+
+### Background execution
+
+The Production Agent (Sonnet, with web search) searches GitHub, X/Twitter, podcasts, and Xiaohongshu on its own. It collects 22 timeline entries and generates the HTML. The Check Agent reviews every item — 18/18 score. judge.py: 3/3 passed. One round, done.
+
+### Delivery
+
+```
+✅ Round 1 passed | 3/3 conditions met
+   ✅ HTML structure valid
+   ✅ Timeline reverse-chronological, 22 entries
+   ✅ Left-right alternating layout, mobile responsive
+   ✅ Content: 12 tools + 6 opinions + 4 milestones
+   ✅ Design quality: 5/5
+⏸  Awaiting human final approval...
+```
+
+Open the HTML in a browser — gradient title, card shadows, entrance animations, mobile responsive. From "I want this" to seeing the result took 12 minutes. You did exactly one thing: confirm the requirements.
+
 ## Changing Settings
 
 Settings are configured through conversation with Orch. Just say:

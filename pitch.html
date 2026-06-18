@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orchestrator · AI 质量保障</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"PingFang SC",-apple-system,BlinkMacSystemFont,"Noto Sans SC",sans-serif;
+  background:#090a0f;color:#e4e4e7;scroll-behavior:smooth;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;
+}
+.slide{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 60px;border-bottom:1px solid #1a1a24;
+}
+.inner{max-width:960px;width:100%}
+h1{font-size:clamp(2.2rem,4.5vw,3.4rem);font-weight:900;line-height:1.15;letter-spacing:-0.02em;margin-bottom:20px;color:#fafafa}
+h2{font-size:clamp(1.7rem,3vw,2.2rem);font-weight:800;letter-spacing:-0.015em;margin-bottom:24px;color:#f4f4f5}
+.accent{color:#e94560}
+.muted{color:#71717a}
+
+.quote{
+  background:#111118;border-left:3px solid #e94560;border-radius:0 12px 12px 0;
+  padding:20px 24px;margin:14px 0;font-size:0.95rem;color:#a1a1aa;line-height:1.65;
+}
+.quote .author{font-size:0.82rem;color:#71717a;margin-top:6px;font-style:normal}
+.quote .author strong{color:#d4d4d8}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+.card{
+  background:#111118;border:1px solid #1e1e2a;border-radius:20px;padding:36px 32px;
+}
+.card.bad{border-color:#451a20}
+.card.good{border-color:#1a3520}
+
+.bar-group{display:flex;gap:10px;justify-content:center;margin:16px 0;align-items:flex-end}
+.bar-col{text-align:center;font-size:0.68rem;color:#71717a}
+.bar-col .block{width:48px;border-radius:5px;margin-bottom:4px}
+.bar-col .block.fail{background:#451a20}
+.bar-col .block.pass{background:#1a3520}
+.bar-col .block.star{background:#1a3520;box-shadow:0 0 10px #4ade8040}
+
+.big-num{font-size:3.5rem;font-weight:900;letter-spacing:-0.03em}
+
+.flow{display:flex;align-items:center;gap:16px;margin:28px 0;flex-wrap:wrap}
+.flow-box{
+  background:#111118;border:1px solid #1e1e2a;border-radius:16px;
+  padding:20px 24px;text-align:center;font-weight:700;font-size:0.95rem;
+  flex:1;min-width:120px;
+}
+.flow-arrow{color:#e94560;font-size:1.3rem;font-weight:300}
+code{background:#1a1a24;padding:3px 10px;border-radius:4px;font-size:0.9em;font-family:"SF Mono","Fira Code",monospace}
+
+.cta{display:inline-block;margin-top:20px;padding:14px 40px;background:#e94560;color:#fff;border-radius:24px;font-weight:700;font-size:1rem;text-decoration:none;transition:transform .2s,box-shadow .2s}
+.cta:hover{transform:translateY(-2px);box-shadow:0 8px 32px #e9456040}
+
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;font-size:0.85rem;color:#a1a1aa}
+.checks div{background:#111118;border-radius:10px;padding:16px;border:1px solid #1e1e2a}
+
+@media(max-width:768px){
+  .slide{padding:60px 24px}.grid2,.flow,.checks{all:unset;display:flex;flex-direction:column;gap:16px;margin-top:16px}
+  h1{font-size:1.8rem}h2{font-size:1.4rem}.big-num{font-size:2.5rem}
+  .flow .flow-arrow{transform:rotate(90deg);margin:4px 0}
+}
+</style>
+</head>
+<body>
+
+<!-- 1: 问题 -->
+<section class="slide">
+<div class="inner">
+  <h1>AI 写代码<span class="accent">越来越快</span><br>但<span class="accent">越来越没人信</span></h1>
+  <div class="quote">
+    "They just don't work. It's slop. The industry is pretending this is amazing, and it's not."
+    <div class="author">&mdash; <strong>Andrej Karpathy</strong>，OpenAI 联合创始人。vibe coding 发明者。<span style="color:#e94560">他自己做项目全程手写代码</span>，因为 AI "just didn't work well enough"。Dwarkesh Podcast，2025.10</div>
+  </div>
+  <div class="quote">
+    "AI can get you most of the way, but not all the way. It's deceptively convincing. Trust is surprisingly low and declining."
+    <div class="author">&mdash; <strong>Addy Osmani</strong>，Google Chrome 工程总监。提出 <span style="color:#e94560">"AI 70% 问题"</span>——AI 产出 70% 的代码，剩下 30% 一样难。</div>
+  </div>
+  <div class="quote" style="border-color:#f59e0b">
+    "Spending more time debugging AI output than if they coded it themselves."
+    <div class="author">&mdash; <strong>Erin Yepis</strong>，Stack Overflow 高级分析师。2025 调查：开发者 AI 信任度 <span style="color:#f59e0b">40% → 29%</span>。</div>
+  </div>
+</div>
+</section>
+
+<!-- 2: 根因 -->
+<section class="slide">
+<div class="inner">
+  <h2>根因：AI <span class="accent">又当运动员又当裁判</span></h2>
+  <div class="grid2">
+    <div class="card bad">
+      <div style="font-size:1.2rem;font-weight:700;color:#f87171;margin-bottom:16px">现在的做法</div>
+      <p style="color:#a1a1aa;line-height:2.2;font-size:0.95rem">
+        "我做完了。"<br>
+        "对吗？"<br>
+        "对的。"<br>
+      </p>
+      <p style="color:#f87171;margin-top:12px;font-size:0.82rem">同一个模型 → 下意识放水 → 看着对就行</p>
+      <p style="color:#52525b;margin-top:6px;font-size:0.78rem">Claude 自己承认："I prioritize speed over correctness"<br>&mdash; GitHub Issue #14987</p>
+    </div>
+    <div class="card good">
+      <div style="font-size:1.2rem;font-weight:700;color:#4ade80;margin-bottom:16px">应该的做法</div>
+      <p style="color:#a1a1aa;line-height:2.2;font-size:0.95rem">
+        "我做完了。"<br>
+        "我查一下...3 处不对。"<br>
+        "修好了。"<br>
+        "再查...过了。"<br>
+      </p>
+      <p style="color:#4ade80;margin-top:12px;font-size:0.82rem">三个人。互相不知道标准。谁也没法放水。</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 3: 方案 + 证据 -->
+<section class="slide">
+<div class="inner">
+  <h2>同模型同任务。加了盲审就 <span class="accent">14% → 100%</span>。</h2>
+  <div class="grid2">
+    <div class="card bad" style="padding:28px 24px">
+      <div style="font-weight:700;color:#f87171;margin-bottom:16px;font-size:1rem">直接生成 · 没人检查</div>
+      <div class="bar-group">
+        <div class="bar-col"><div class="block fail" style="height:30px"></div>一</div>
+        <div class="bar-col"><div class="block fail" style="height:30px"></div>二</div>
+        <div class="bar-col"><div class="block fail" style="height:30px"></div>三</div>
+        <div class="bar-col"><div class="block fail" style="height:30px"></div>四</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>五</div>
+        <div class="bar-col"><div class="block fail" style="height:30px"></div>六</div>
+        <div class="bar-col"><div class="block fail" style="height:30px"></div>日</div>
+      </div>
+      <div class="big-num" style="color:#f87171;text-align:center">1/7</div>
+      <p style="color:#71717a;text-align:center;margin-top:4px;font-size:0.85rem">蛋白/碳水/脂肪到处飘</p>
+    </div>
+    <div class="card good" style="padding:28px 24px">
+      <div style="font-weight:700;color:#4ade80;margin-bottom:16px;font-size:1rem">Orchestrator · 检查 Worker 逐条验算</div>
+      <div class="bar-group">
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>一</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>二</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>三</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>四</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>五</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>六</div>
+        <div class="bar-col"><div class="block pass" style="height:16px"></div>日</div>
+      </div>
+      <div class="big-num" style="color:#4ade80;text-align:center">7/7</div>
+      <p style="color:#71717a;text-align:center;margin-top:4px;font-size:0.85rem">第1轮被盲审打回 → 修好通过</p>
+    </div>
+  </div>
+  <div class="flow" style="margin-top:32px">
+    <div class="flow-box" style="border-color:#f59e0b30"><span style="color:#fbbf24">生产</span><br><span class="muted" style="font-size:0.75rem">不知标准</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-box" style="border-color:#3b82f630"><span style="color:#60a5fa">检查</span><br><span class="muted" style="font-size:0.75rem">不知及格线</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-box" style="border-color:#4ade8030"><span style="color:#4ade80">代码判分</span><br><span class="muted" style="font-size:0.75rem">零 AI</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-box" style="border-color:#e9456030"><span style="color:#f87171">你确认</span><br><span class="muted" style="font-size:0.75rem">最后闸门</span></div>
+  </div>
+</div>
+</section>
+
+<!-- 4: CTA -->
+<section class="slide">
+<div class="inner" style="text-align:center">
+  <h2 style="margin-bottom:24px">三行命令。三个角色。<br>你只做<span class="accent">最后一道确认</span>。</h2>
+  <div class="checks">
+    <div><div style="font-weight:800;color:#fafafa;margin-bottom:6px;font-size:1rem">/orchestrator</div><span class="muted">Claude Code 里召唤</span></div>
+    <div><div style="font-weight:800;color:#fafafa;margin-bottom:6px;font-size:1rem">聊需求</div><span class="muted">Orch 引导你理清标准</span></div>
+    <div><div style="font-weight:800;color:#fafafa;margin-bottom:6px;font-size:1rem">等结果</div><span class="muted">后台全自动 + 实时监控</span></div>
+  </div>
+  <div style="margin-top:36px">
+    <code style="font-size:1rem">github.com/Gavin9902/orchestrator-ai</code>
+    <p style="color:#52525b;margin-top:10px;font-size:0.82rem">MIT · Python 3.12+ · Claude Code CLI · 支持多模态（MiMo/GPT-4o）</p>
+  </div>
+</div>
+</section>
+
+</body>
+</html>

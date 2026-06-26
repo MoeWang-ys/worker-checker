@@ -57,17 +57,17 @@
 适用所有支持 Agent Skills 规范的 AI 编程助手（Claude Code / CodeBuddy / Codex / Cursor 等 68+ 平台）：
 
 ```bash
-npx skills add Gavin9902/orchestrator-ai
+npx skills add Gavin9902/worker-checker
 ```
 
 安装特定平台版本（可选）：
 
 ```bash
 # 只要 CodeBuddy 版
-npx skills add Gavin9902/orchestrator-ai --skill worker-checker
+npx skills add Gavin9902/worker-checker --skill worker-checker
 
 # 只要 Claude Code 版
-npx skills add Gavin9902/orchestrator-ai --skill worker-checker-claude
+npx skills add Gavin9902/worker-checker --skill worker-checker-claude
 ```
 
 > `npx skills` 是 [Vercel Labs](https://github.com/vercel-labs/skills) 开源的 skill 管理工具。如果没有安装，运行时会自动下载。
@@ -85,7 +85,7 @@ npx skills add Gavin9902/orchestrator-ai --skill worker-checker-claude
 在任何 AI 编程助手中输入：
 
 ```
-帮我安装这个 skill：https://github.com/Gavin9902/orchestrator-ai
+帮我安装这个 skill：https://github.com/Gavin9902/worker-checker
 ```
 
 AI 会自动拉取并安装到本地。
@@ -93,7 +93,7 @@ AI 会自动拉取并安装到本地。
 ### 方式四：手动安装
 
 ```bash
-git clone https://github.com/Gavin9902/orchestrator-ai.git
+git clone https://github.com/Gavin9902/worker-checker.git
 cp -r orchestrator-ai ~/.codebuddy/skills/worker-checker/
 ```
 

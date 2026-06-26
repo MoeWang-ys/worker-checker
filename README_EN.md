@@ -57,17 +57,17 @@ The skill auto-detects your platform on load:
 Works on all 68+ Agent Skills-compatible AI coding assistants (Claude Code / CodeBuddy / Codex / Cursor etc.):
 
 ```bash
-npx skills add Gavin9902/orchestrator-ai
+npx skills add Gavin9902/worker-checker
 ```
 
 Install specific platform versions (optional):
 
 ```bash
 # CodeBuddy only
-npx skills add Gavin9902/orchestrator-ai --skill worker-checker
+npx skills add Gavin9902/worker-checker --skill worker-checker
 
 # Claude Code only
-npx skills add Gavin9902/orchestrator-ai --skill worker-checker-claude
+npx skills add Gavin9902/worker-checker --skill worker-checker-claude
 ```
 
 > `npx skills` is the open-source skill manager by [Vercel Labs](https://github.com/vercel-labs/skills). It auto-downloads if not already installed.
@@ -85,7 +85,7 @@ Or visit [skillhub.cn](https://skillhub.cn) to install directly.
 In any AI coding assistant, type:
 
 ```
-Install this skill: https://github.com/Gavin9902/orchestrator-ai
+Install this skill: https://github.com/Gavin9902/worker-checker
 ```
 
 The AI will auto-fetch and install it locally.
@@ -93,7 +93,7 @@ The AI will auto-fetch and install it locally.
 ### Method 4: Manual Install
 
 ```bash
-git clone https://github.com/Gavin9902/orchestrator-ai.git
+git clone https://github.com/Gavin9902/worker-checker.git
 cp -r orchestrator-ai ~/.codebuddy/skills/worker-checker/
 ```
 

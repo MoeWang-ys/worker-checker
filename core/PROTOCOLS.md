@@ -420,8 +420,8 @@ init
   → executing_layer (layer=1, step=prod_workers)
       → prod_workers → check_workers → judge → layer_done
           → 全部 PASS → next layer (layer+1)
-          → 有 FAIL + round < 3 → 重试 (round+1)
-          → 有 FAIL + round >= 3 → failed
+          → 有 FAIL + round < 8 → 重试 (round+1)
+          → 有 FAIL + round >= 8 → failed
   → done (全部层完成)
 ```
 
@@ -500,7 +500,7 @@ LOCK_FILE = "run_output/next_actions.lock"
 RECEIPT_FILE = "run_output/orch_receipt.json"
 AUDIT_FILE = "run_output/audit_log.json"
 CHECKSUM_FILE = "scripts/checksum.txt"
-MAX_ROUNDS = 3
+MAX_ROUNDS = 8
 
 def load_json(path):
     with open(path) as f:

@@ -143,8 +143,19 @@ Couple = 1 生产 Worker + 1 检查 Worker + 1 次 judge.py
 | 角色 | 做什么 | 输入 | 输出 |
 |------|--------|------|------|
 | prod-worker | 执行任务，写文件 | task prompt + 依赖文件路径 | 文件路径 + 一句话摘要 |
-| check-worker | 审查文件，写打分 | checklist + 文件路径 | 打分文件路径 |
+| check-worker | 审查文件，写打分 | checklist（从 spec.json 目标推导，非 Worker 执行步骤） + 文件路径 | 打分文件路径 |
 | judge.py | 比对标准 vs 打分 | criteria + check_result | PASS / FAIL |
+
+### Checker 角色关键约束
+
+> **Checker 验证的是 spec 目标是否达成，不是 Worker 是否按计划执行。**
+
+1. **checklist 从 spec.json 推导** — PM Couple 生成 checklist 时，阅读 spec.json 的 description 和 constraints，提取用户真正关心的验证点，而非从 Worker 的执行步骤推导
+2. **独立扫描** — Checker 直接检查产物文件，不参考 Worker 的执行日志或输出摘要
+3. **目标导向验证** — 每项检查回答"目标 X 达成了吗？"，而非"Worker 做了 Y 吗？"
+4. **不信任 Worker** — 即使 Worker 声称完成了所有步骤，Checker 也必须独立验证最终结果
+
+**设计理由：** 如果 Checker 只验证 Worker 的执行步骤（如"x=222-393 是否已变白色"），当 Worker 遗漏了 A 列（含人名的列）时，Checker 不会发现——因为 Worker 的步骤里根本没提到 A 列。只有从 spec 目标出发（"图片中是否还有可见的人名？"），Checker 才会扫描全图发现遗漏。
 
 ---
 

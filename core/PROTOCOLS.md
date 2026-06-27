@@ -110,6 +110,66 @@ Orch 翻译用户需求为此格式，只描述"要什么"，不描述"怎么做
 
 ---
 
+## checklist 生成规则 🛑
+
+> **checklist 从 spec.json 的目标推导，不从 Worker 的执行步骤推导。**
+
+### 正确示例
+
+```json
+// spec.json 目标：遮盖图片中的姓名、工号、电话、邮箱
+// ✅ 正确的 checklist：
+[
+  "图片中是否还有可见的人名（中文姓名）？扫描全图确认",
+  "图片中是否还有可见的工号（数字串）？扫描全图确认",
+  "图片中是否还有可见的电话号码？扫描全图确认",
+  "图片中是否还有可见的邮箱地址？扫描全图确认",
+  "非敏感区域（工具栏、表头）是否未被误遮盖？"
+]
+```
+
+### 错误示例
+
+```json
+// ❌ 错误的 checklist —— 从 Worker 执行步骤推导：
+[
+  "x=222-393 是否已变白色？",
+  "x=396-543 是否已变白色？",
+  "Worker 是否完成了 4 个列的遮盖？"
+]
+```
+
+### 规则
+
+1. **checklist 从 spec 目标推导** — 阅读 spec.json 的 description 和 constraints，提取用户真正关心的验证点
+2. **checklist 项必须可独立验证** — 不需要参考 Worker 的输出或日志就能判断
+3. **不信任 Worker** — checklist 不应包含"Worker 是否做了 X"这类词，而是直接验证结果
+4. **保持 spec 精度** — spec 要求遮盖姓名，checklist 就写"是否还有可见的人名"，不写"像素 x=222-393 是否白色"
+
+### Checker prompt 模板
+
+```
+你是检查 Worker。你的任务是验证以下目标是否达成。
+
+## 用户需求（spec）
+{spec}
+
+## 约束条件
+{constraints}
+
+## 产物文件
+{prod_output_file}
+
+## 检查清单
+{checklist}
+
+逐项检查后，将结果写入 {check_output_file}。
+```
+
+> **关键**：Checker 不读 Worker 的执行日志，不验证 Worker 的步骤，只验证 spec 目标是否在产物中达成。
+
+---
+
 ## next_actions.json 格式
 
 ```json
